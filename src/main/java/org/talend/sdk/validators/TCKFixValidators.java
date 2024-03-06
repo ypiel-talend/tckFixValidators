@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@CommandLine.Command(name = "TCKFixValidators", description = "Fix TCK connectors to be aligned with validators.")
+@CommandLine.Command(name = "TCKFixValidators", description = "Fix TCK connectors to be aligned with talend-component-maven-plugin ValidateComponent mojo.")
 public class TCKFixValidators implements Runnable {
 
     private final static List<String> tckValidatorsKeys = Arrays.asList();
@@ -38,10 +38,9 @@ public class TCKFixValidators implements Runnable {
 
     @Override
     public void run() {
-        // Logique de traitement ici
-        System.out.println("Chemin du dossier: " + folder);
+        System.out.println("Execution on folder: " + folder);
         if (dryRun) {
-            System.out.println("Exécution en mode dry-run...");
+            System.out.println("dry-run execution...");
         }
 
         Path startPath = Paths.get(folder);
@@ -53,7 +52,7 @@ public class TCKFixValidators implements Runnable {
             Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                    if (attrs.isRegularFile() && file.getFileName().toString().endsWith(".java")) {
+                    if (fixDocumentation && attrs.isRegularFile() && file.getFileName().toString().endsWith(".java")) {
                         if (listAll) {
                             System.out.println(String.format("Check java file %s", file));
                         }
@@ -62,7 +61,7 @@ public class TCKFixValidators implements Runnable {
                         } catch (IOException e) {
                             throw new RuntimeException(String.format("Can't process the java file: %s", file), e);
                         }
-                    } else if (attrs.isRegularFile() && file.getFileName().toString().endsWith(".properties") && file.getFileName().toString().startsWith("Messages")) {
+                    } else if (fixPlaceholder && attrs.isRegularFile() && file.getFileName().toString().endsWith(".properties") && file.getFileName().toString().startsWith("Messages")) {
                         if (listAll) {
                             System.out.println(String.format("Check i18n file %s", file));
                         }
@@ -71,8 +70,6 @@ public class TCKFixValidators implements Runnable {
                         } catch (IOException e) {
                             throw new RuntimeException(String.format("Can't process the i18n file: %s", file), e);
                         }
-                    } else if (attrs.isRegularFile() && file.getFileName().equals("pom.xml")) {
-                        checkPoms(file);
                     }
                     return FileVisitResult.CONTINUE;
                 }
@@ -83,21 +80,13 @@ public class TCKFixValidators implements Runnable {
 
     }
 
-    private void checkPoms(Path file) {
-        try {
-            String content = Files.readString(file);
-
-        } catch (IOException e) {
-            throw new RuntimeException(String.format("Can't process pom files '%s': %s", file, e.getMessage()), e);
-        }
-    }
-
     /**
-     * Add _placeholder where _displayname exist in i18n properties files.
+     * Add _placeholder everywhere a _displayname exist in i18n properties files.
      *
      * @param file
      * @throws IOException
      */
+    @Deprecated // Better to use the talend-component-maven-plugin plugin with -Dtalend.validation.internationalization.autofix=true option
     private void processI18nFile(Path file) throws IOException {
         String content = Files.readString(file);
 
@@ -111,6 +100,7 @@ public class TCKFixValidators implements Runnable {
                 dry = " (dryrun: no write)";
             }
             System.out.println(String.format("\tUpdate file%s : %s", dry, file));
+            System.out.println("/!\\ Better to use the talend-component-maven-plugin plugin with -Dtalend.validation.internationalization.autofix=true option");
         }
     }
 
